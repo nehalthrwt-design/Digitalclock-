@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimePulse — Digital Clock</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black:   #06060e;
+      --surface: #0d0d1a;
+      --card:    #111122;
+      --border:  rgba(255,255,255,0.06);
+      --cyan:    #00e5ff;
+      --cyan-dim: rgba(0,229,255,0.1);
+      --purple:  #7c3aed;
+      --white:   #e8e8ff;
+      --muted:   #4a4a6a;
+      --glow-cyan: 0 0 40px rgba(0,229,255,0.3);
+      --glow-big:  0 0 80px rgba(0,229,255,0.15);
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--black);
+      color: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* grid bg */
+    body::before {
+      content:'';
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position:fixed; top:0; left:0; right:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:18px 60px;
+      background:rgba(6,6,14,0.85);
+      backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);
+    }
+    .logo { font-family:'Orbitron',monospace; font-size:1.1rem; font-weight:900; color:var(--white); letter-spacing:2px; }
+    .logo span { color:var(--cyan); }
+    .nav-links { display:flex; gap:36px; list-style:none; }
+    .nav-links a { color:var(--muted); text-decoration:none; font-size:0.9rem; font-weight:600; letter-spacing:1px; text-transform:uppercase; transition:color 0.2s; }
+    .nav-links a:hover { color:var(--white); }
+    .nav-cta { background:transparent; color:var(--cyan); padding:9px 22px; border-radius:4px; font-weight:700; font-size:0.82rem; text-decoration:none; border:1px solid var(--cyan); letter-spacing:1px; text-transform:uppercase; transition:all 0.2s; font-family:'Orbitron',monospace; }
+    .nav-cta:hover { background:var(--cyan-dim); box-shadow:var(--glow-cyan); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+      flex-direction:column;
+      padding:120px 60px 80px;
+      position:relative; text-align:center;
+    }
+    .hero-tag {
+      display:inline-flex; align-items:center; gap:8px;
+      background:var(--cyan-dim); border:1px solid rgba(0,229,255,0.2);
+      color:var(--cyan); padding:5px 16px; border-radius:2px;
+      font-size:0.72rem; font-weight:600; letter-spacing:3px;
+      text-transform:uppercase; margin-bottom:40px;
+      animation:fadeUp 0.8s ease both;
+      font-family:'Orbitron',monospace;
+    }
+    .hero-tag::before { content:'▶'; font-size:7px; }
+
+    h1 {
+      font-family:'Orbitron',monospace;
+      font-size:clamp(2.5rem,7vw,6rem);
+      font-weight:900; line-height:1;
+      letter-spacing:-1px;
+      animation:fadeUp 0.8s 0.1s ease both;
+    }
+    h1 .accent { color:var(--cyan); text-shadow:var(--glow-cyan); }
+    .hero-sub { font-size:1.15rem; color:var(--muted); line-height:1.7; max-width:520px; margin:24px auto 50px; font-weight:300; letter-spacing:0.5px; animation:fadeUp 0.8s 0.2s ease both; }
+    .hero-btns { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; animation:fadeUp 0.8s 0.3s ease both; }
+    .btn-primary { background:var(--cyan); color:var(--black); padding:14px 36px; border-radius:4px; font-size:0.85rem; font-weight:700; text-decoration:none; transition:all 0.2s; font-family:'Orbitron',monospace; letter-spacing:2px; text-transform:uppercase; }
+    .btn-primary:hover { box-shadow:var(--glow-cyan); transform:translateY(-2px); }
+    .btn-ghost { background:transparent; color:var(--white); padding:14px 36px; border-radius:4px; font-size:0.85rem; font-weight:600; text-decoration:none; border:1px solid var(--border); transition:all 0.2s; letter-spacing:1px; text-transform:uppercase; }
+    .btn-ghost:hover { border-color:rgba(255,255,255,0.2); background:rgba(255,255,255,0.03); }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── STATS ── */
+    .stats-bar {
+      border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+      background:var(--surface);
+      padding:24px 60px;
+      display:flex; justify-content:center; gap:80px; flex-wrap:wrap;
+      position:relative; z-index:1;
+    }
+    .stat { text-align:center; }
+    .stat-num { font-family:'Orbitron',monospace; font-size:1.8rem; font-weight:700; color:var(--cyan); letter-spacing:2px; }
+    .stat-label { font-size:0.72rem; color:var(--muted); font-weight:600; letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
+
+    /* ── SECTIONS ── */
+    section { position:relative; z-index:1; }
+    .section-label { font-size:0.68rem; font-weight:600; letter-spacing:4px; text-transform:uppercase; color:var(--cyan); margin-bottom:14px; font-family:'Orbitron',monospace; }
+    .section-title { font-family:'Orbitron',monospace; font-size:clamp(1.6rem,3.5vw,2.8rem); font-weight:700; letter-spacing:-0.5px; line-height:1.2; }
+    .section-sub { color:var(--muted); font-size:1rem; line-height:1.7; font-weight:300; margin-top:14px; letter-spacing:0.3px; }
+
+    /* ── FEATURES ── */
+    .features { padding:120px 60px; max-width:1200px; margin:0 auto; }
+    .features-head { text-align:center; margin-bottom:70px; }
+    .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); }
+    .feat-card { background:var(--card); padding:40px 32px; transition:all 0.3s; position:relative; overflow:hidden; }
+    .feat-card::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); opacity:0; transition:opacity 0.3s; }
+    .feat-card:hover { background:#151526; }
+    .feat-card:hover::after { opacity:1; }
+    .feat-num { font-family:'Orbitron',monospace; font-size:0.65rem; color:var(--cyan); letter-spacing:3px; margin-bottom:20px; opacity:0.6; }
+    .feat-title { font-family:'Orbitron',monospace; font-size:0.95rem; font-weight:700; margin-bottom:12px; letter-spacing:1px; }
+    .feat-desc { color:var(--muted); font-size:0.92rem; line-height:1.7; font-weight:300; }
+
+    /* ── CLOCK SECTION ── */
+    .clock-section {
+      padding:120px 60px;
+      background:var(--surface);
+      border-top:1px solid var(--border);
+      border-bottom:1px solid var(--border);
+    }
+    .clock-section-inner {
+      max-width:1100px; margin:0 auto;
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:80px; align-items:center;
+    }
+
+    /* ── THE CLOCK ── */
+    .clock-wrap { display:flex; flex-direction:column; align-items:center; gap:24px; }
+
+    .clock-box {
+      background:var(--card);
+      border:1px solid rgba(0,229,255,0.15);
+      border-radius:8px;
+      padding:40px 48px;
+      text-align:center;
+      position:relative;
+      box-shadow: 0 0 60px rgba(0,229,255,0.05), 0 30px 80px rgba(0,0,0,0.6);
+      width:100%;
+    }
+    /* corner accents */
+    .clock-box::before,.clock-box::after {
+      content:'';
+      position:absolute;
+      width:16px; height:16px;
+      border-color:var(--cyan); border-style:solid;
+    }
+    .clock-box::before { top:-1px; left:-1px; border-width:2px 0 0 2px; }
+    .clock-box::after  { bottom:-1px; right:-1px; border-width:0 2px 2px 0; }
+
+    .clock-label {
+      font-family:'Orbitron',monospace;
+      font-size:0.62rem; letter-spacing:4px;
+      color:var(--cyan); opacity:0.5;
+      text-transform:uppercase; margin-bottom:20px;
+    }
+
+    .time-display {
+      font-family:'Orbitron',monospace;
+      font-size:clamp(2.8rem,6vw,5rem);
+      font-weight:900;
+      color:var(--cyan);
+      text-shadow: 0 0 30px rgba(0,229,255,0.5), 0 0 60px rgba(0,229,255,0.2);
+      letter-spacing:4px;
+      line-height:1;
+    }
+    /* blinking colon */
+    .colon { animation:blinkColon 1s step-end infinite; }
+    @keyframes blinkColon { 0%,100%{opacity:1} 50%{opacity:0.15} }
+
+    .date-display {
+      font-family:'Orbitron',monospace;
+      font-size:0.75rem; letter-spacing:3px;
+      color:var(--muted); margin-top:16px;
+      text-transform:uppercase;
+    }
+
+    .ampm {
+      font-family:'Orbitron',monospace;
+      font-size:0.9rem; color:var(--cyan);
+      opacity:0.7; letter-spacing:2px;
+      margin-top:8px;
+    }
+
+    /* extras */
+    .clock-extras {
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:10px; width:100%;
+    }
+    .extra-card {
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:6px; padding:16px 20px;
+      text-align:center;
+    }
+    .extra-val { font-family:'Orbitron',monospace; font-size:1.2rem; font-weight:700; color:var(--white); letter-spacing:2px; }
+    .extra-label { font-size:0.65rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
+
+    /* timezone selector */
+    .tz-wrap { width:100%; }
+    .tz-label { font-size:0.68rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; font-family:'Orbitron',monospace; }
+    .tz-select {
+      width:100%; background:var(--card);
+      border:1px solid var(--border); color:var(--white);
+      padding:10px 16px; border-radius:4px;
+      font-family:'Orbitron',monospace; font-size:0.78rem;
+      letter-spacing:1px; cursor:pointer; outline:none;
+      transition:border-color 0.2s;
+    }
+    .tz-select:hover,.tz-select:focus { border-color:rgba(0,229,255,0.3); }
+
+    /* ── HOW IT WORKS ── */
+    .how { padding:120px 60px; max-width:900px; margin:0 auto; text-align:center; }
+    .steps { margin-top:60px; display:flex; flex-direction:column; }
+    .step { display:grid; grid-template-columns:56px 1fr; gap:28px; text-align:left; padding-bottom:44px; }
+    .step:last-child { padding-bottom:0; }
+    .step-left { display:flex; flex-direction:column; align-items:center; }
+    .step-num {
+      width:44px; height:44px; border-radius:2px;
+      background:var(--cyan-dim); border:1px solid rgba(0,229,255,0.3);
+      color:var(--cyan); font-size:0.72rem; font-weight:700;
+      font-family:'Orbitron',monospace;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0; letter-spacing:1px;
+    }
+    .step-line { flex:1; width:1px; background:var(--border); margin-top:8px; }
+    .step:last-child .step-line { display:none; }
+    .step-title { font-family:'Orbitron',monospace; font-size:0.95rem; font-weight:700; margin-bottom:8px; margin-top:10px; letter-spacing:1px; }
+    .step-desc { color:var(--muted); font-size:0.92rem; line-height:1.7; font-weight:300; }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding:100px 60px; text-align:center;
+      border-top:1px solid var(--border);
+      background:radial-gradient(ellipse 70% 50% at 50% 50%, rgba(0,229,255,0.05) 0%, transparent 70%);
+    }
+    .cta-section h2 { font-family:'Orbitron',monospace; font-size:clamp(1.8rem,4vw,3.5rem); font-weight:900; letter-spacing:-0.5px; margin-bottom:16px; }
+    .cta-section h2 span { color:var(--cyan); text-shadow:var(--glow-cyan); }
+    .cta-section p { color:var(--muted); font-size:1rem; margin-bottom:40px; letter-spacing:0.3px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top:1px solid var(--border);
+      padding:28px 60px;
+      display:flex; align-items:center; justify-content:space-between;
+      background:var(--surface);
+    }
+    .footer-logo { font-family:'Orbitron',monospace; font-size:1rem; font-weight:900; letter-spacing:2px; }
+    .footer-logo span { color:var(--cyan); }
+    footer p { color:var(--muted); font-size:0.78rem; letter-spacing:1px; }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:900px){
+      nav { padding:16px 24px; }
+      .nav-links { display:none; }
+      .hero { padding:100px 24px 80px; }
+      .stats-bar { padding:24px; gap:40px; }
+      .features { padding:80px 24px; }
+      .features-grid { grid-template-columns:1fr; background:none; border:none; gap:1px; }
+      .feat-card { border:1px solid var(--border); }
+      .clock-section { padding:80px 24px; }
+      .clock-section-inner { grid-template-columns:1fr; gap:50px; }
+      .how { padding:80px 24px; }
+      .cta-section { padding:80px 24px; }
+      footer { padding:24px; flex-direction:column; gap:10px; text-align:center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">Time<span>Pulse</span></div>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#clock">Live Clock</a></li>
+      <li><a href="#how">How It Works</a></li>
+    </ul>
+    <a href="#clock" class="nav-cta">View Clock</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="home">
+    <div class="hero-tag">✦ Real-Time Digital Clock</div>
+    <h1>Time Is<br><span class="accent">Everything.</span></h1>
+    <p class="hero-sub">A precision digital clock that displays the exact time, date, timezone, and more — beautifully rendered in real time.</p>
+    <div class="hero-btns">
+      <a href="#clock" class="btn-primary">View Live Clock</a>
+      <a href="#features" class="btn-ghost">Explore Features</a>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num">24/7</div><div class="stat-label">Always Running</div></div>
+    <div class="stat"><div class="stat-num">1s</div><div class="stat-label">Update Rate</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Timezones</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Accurate</div></div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="features-head">
+      <div class="section-label">✦ Features</div>
+      <h2 class="section-title">Built For Precision</h2>
+      <p class="section-sub">Every detail crafted to give you the most accurate and beautiful time display.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-num">01</div>
+        <div class="feat-title">Real-Time Updates</div>
+        <div class="feat-desc">The clock updates every second using JavaScript's setInterval, keeping you perfectly in sync at all times.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">02</div>
+        <div class="feat-title">Date Display</div>
+        <div class="feat-desc">Shows the full date including day, month, and year — always formatted cleanly below the time.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">03</div>
+        <div class="feat-title">AM / PM Mode</div>
+        <div class="feat-desc">Automatically detects whether it's AM or PM and displays it alongside the time for clarity.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">04</div>
+        <div class="feat-title">Day of Week</div>
+        <div class="feat-desc">Always know what day it is. The clock displays the current weekday in real time.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">05</div>
+        <div class="feat-title">Timezone Support</div>
+        <div class="feat-desc">Switch between major world timezones instantly to see what time it is anywhere on the planet.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-num">06</div>
+        <div class="feat-title">Blinking Colon</div>
+        <div class="feat-desc">A classic digital clock detail — the colon blinks every second to show the clock is alive and ticking.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOCK SECTION -->
+  <section class="clock-section" id="clock">
+    <div class="clock-section-inner">
+
+      <div>
+        <div class="section-label">✦ Live Clock</div>
+        <h2 class="section-title">The Time,<br>Right Now.</h2>
+        <p class="section-sub">Accurate to the second, updating live in your browser. No refresh needed — ever.</p>
+        <div style="margin-top:36px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;font-size:0.92rem;color:var(--white);font-weight:300;">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);flex-shrink:0;"></div>
+            Updates every single second automatically
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;font-size:0.92rem;color:var(--white);font-weight:300;">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);flex-shrink:0;"></div>
+            Switch timezone from the dropdown below
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;font-size:0.92rem;color:var(--white);font-weight:300;">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);flex-shrink:0;"></div>
+            Shows time, date, day, week number & more
+          </div>
+        </div>
+      </div>
+
+      <div class="clock-wrap">
+        <!-- Main clock -->
+        <div class="clock-box">
+          <div class="clock-label">// CURRENT TIME</div>
+          <div class="time-display">
+            <span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span class="colon">:</span><span id="seconds">00</span>
+          </div>
+          <div class="ampm" id="ampm">AM</div>
+          <div class="date-display" id="dateDisplay">loading...</div>
+        </div>
+
+        <!-- Extras -->
+        <div class="clock-extras">
+          <div class="extra-card">
+            <div class="extra-val" id="dayName">---</div>
+            <div class="extra-label">Day</div>
+          </div>
+          <div class="extra-card">
+            <div class="extra-val" id="weekNum">--</div>
+            <div class="extra-label">Week No.</div>
+          </div>
+          <div class="extra-card">
+            <div class="extra-val" id="dayOfYear">---</div>
+            <div class="extra-label">Day of Year</div>
+          </div>
+          <div class="extra-card">
+            <div class="extra-val" id="timeZone">---</div>
+            <div class="extra-label">Timezone</div>
+          </div>
+        </div>
+
+        <!-- Timezone -->
+        <div class="tz-wrap">
+          <div class="tz-label">// Select Timezone</div>
+          <select class="tz-select" id="tzSelect" onchange="changeTZ()">
+            <option value="local">Local Time</option>
+            <option value="America/New_York">New York (EST)</option>
+            <option value="America/Los_Angeles">Los Angeles (PST)</option>
+            <option value="Europe/London">London (GMT)</option>
+            <option value="Europe/Paris">Paris (CET)</option>
+            <option value="Asia/Dubai">Dubai (GST)</option>
+            <option value="Asia/Riyadh">Riyadh (AST)</option>
+            <option value="Asia/Tokyo">Tokyo (JST)</option>
+            <option value="Asia/Shanghai">Shanghai (CST)</option>
+            <option value="Australia/Sydney">Sydney (AEDT)</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how">
+    <div class="section-label">✦ How It Works</div>
+    <h2 class="section-title">The Technology</h2>
+    <p class="section-sub">Pure HTML, CSS, and JavaScript — no libraries, no dependencies.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-left"><div class="step-num">01</div><div class="step-line"></div></div>
+        <div>
+          <div class="step-title">new Date()</div>
+          <div class="step-desc">JavaScript's built-in Date object gives us the current time with millisecond precision. We call it every second to stay up to date.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">02</div><div class="step-line"></div></div>
+        <div>
+          <div class="step-title">setInterval()</div>
+          <div class="step-desc">setInterval runs our update function every 1000ms (1 second), keeping the display perfectly in sync with the system clock.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">03</div><div class="step-line"></div></div>
+        <div>
+          <div class="step-title">toLocaleString()</div>
+          <div class="step-desc">JavaScript's toLocaleString handles timezone conversion automatically, letting us display accurate times for any region in the world.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <h2>Time Waits For <span>No One.</span></h2>
+    <p>The clock is already running — scroll up and watch it tick.</p>
+    <a href="#clock" class="btn-primary">Back To Clock</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Time<span>Pulse</span></div>
+    <p>Built with HTML · CSS · JavaScript</p>
+    <p>© 2025 TimePulse</p>
+  </footer>
+
+  <script>
+    let selectedTZ = 'local';
+
+    function changeTZ() {
+      selectedTZ = document.getElementById('tzSelect').value;
+    }
+
+    // حساب رقم الأسبوع في السنة
+    function getWeekNumber(d) {
+      const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    }
+
+    // حساب اليوم من السنة
+    function getDayOfYear(d) {
+      const start = new Date(d.getFullYear(), 0, 0);
+      const diff = d - start;
+      return Math.floor(diff / 86400000);
+    }
+
+    function updateClock() {
+      const now = new Date();
+
+      let h, m, s, ampm, dateStr, dayName, tzName;
+
+      if (selectedTZ === 'local') {
+        h = now.getHours();
+        m = now.getMinutes();
+        s = now.getSeconds();
+        ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+
+        const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        dayName = days[now.getDay()].toUpperCase();
+        dateStr = `${days[now.getDay()].toUpperCase()}  ${now.getDate()} ${months[now.getMonth()].toUpperCase()} ${now.getFullYear()}`;
+
+        document.getElementById('weekNum').textContent = 'W' + getWeekNumber(now);
+        document.getElementById('dayOfYear').textContent = getDayOfYear(now);
+        tzName = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().toUpperCase();
+      } else {
+        // timezone mode
+        const opts = { timeZone: selectedTZ, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+        const parts = new Intl.DateTimeFormat('en-US', opts).formatToParts(now);
+        const get = t => parts.find(p => p.type === t)?.value || '00';
+        h = get('hour'); m = get('minute'); s = get('second'); ampm = get('dayperiod').toUpperCase();
+
+        const dOpts = { timeZone: selectedTZ, weekday:'long', year:'numeric', month:'short', day:'numeric' };
+        dateStr = new Intl.DateTimeFormat('en-US', dOpts).format(now).toUpperCase();
+        const dayOpts = { timeZone: selectedTZ, weekday:'long' };
+        dayName = new Intl.DateTimeFormat('en-US', dayOpts).format(now).toUpperCase();
+
+        document.getElementById('weekNum').textContent = 'W' + getWeekNumber(now);
+        document.getElementById('dayOfYear').textContent = getDayOfYear(now);
+        tzName = selectedTZ.split('/').pop().toUpperCase();
+      }
+
+      // pad zeros
+      const pad = n => String(n).padStart(2, '0');
+
+      document.getElementById('hours').textContent   = pad(h);
+      document.getElementById('minutes').textContent = pad(m);
+      document.getElementById('seconds').textContent = pad(s);
+      document.getElementById('ampm').textContent    = ampm;
+      document.getElementById('dateDisplay').textContent = dateStr;
+      document.getElementById('dayName').textContent = dayName.slice(0, 3);
+      document.getElementById('timeZone').textContent = tzName.slice(0, 6);
+    }
+
+    // شغّل على طول ثم كل ثانية
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>
